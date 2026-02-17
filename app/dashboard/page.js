@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabaseClient";
 import Navbar from "../../components/Navbar";
 import BookmarkForm from "../../components/BookmarkForm";
@@ -9,26 +10,34 @@ import BookmarkList from "../../components/BookmarkList";
 export default function Dashboard() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   useEffect(() => {
-    const getUser = async () => {
-      const { data } = await supabase.auth.getUser();
-
+    supabase.auth.getUser().then(({ data }) => {
       if (!data?.user) {
-        window.location.href = "/login";
-        return;
+        router.replace("/login");
+      } else {
+        setUser(data.user);
+        setLoading(false);
       }
+    });
 
-      setUser(data.user);
-      setLoading(false);
-    };
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!session) router.replace("/login");
+    });
 
-    getUser();
-  }, []);
+    return () => subscription.unsubscribe();
+  }, [router]);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+  };
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center text-gray-500">
         Loading...
       </div>
     );
@@ -36,8 +45,7 @@ export default function Dashboard() {
 
   return (
     <div className="max-w-2xl mx-auto p-6">
-      <Navbar />
-      {/* No refresh prop needed */}
+      <Navbar onLogout={handleLogout} />
       <BookmarkForm user={user} />
       <BookmarkList user={user} />
     </div>

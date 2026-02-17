@@ -3,13 +3,12 @@
 import { useState } from "react";
 import { supabase } from "../lib/supabaseClient";
 
-export default function BookmarkForm({ user, onRefresh }) {
+export default function BookmarkForm({ user }) {
   const [title, setTitle] = useState("");
   const [url, setUrl] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // Normalize URL (auto add https)
   const normalizeUrl = (value) => {
     if (!value.startsWith("http://") && !value.startsWith("https://")) {
       return `https://${value}`;
@@ -47,7 +46,7 @@ export default function BookmarkForm({ user, onRefresh }) {
     const { error: insertError } = await supabase.from("bookmarks").insert({
       title: title.trim(),
       url: formattedUrl,
-      user_id: user.id, // RLS-safe
+      user_id: user.id,
     });
 
     setLoading(false);
@@ -57,26 +56,18 @@ export default function BookmarkForm({ user, onRefresh }) {
       return;
     }
 
-    // Reset inputs
+    // Reset only — realtime updates list
     setTitle("");
     setUrl("");
-
-    // 🔥 SAFE refresh trigger
-    if (typeof onRefresh === "function") {
-      onRefresh();
-    }
   };
 
   return (
     <div className="mb-6">
-      <form
-        onSubmit={addBookmark}
-        className="flex flex-col sm:flex-row gap-3"
-      >
+      <form onSubmit={addBookmark} className="flex flex-col sm:flex-row gap-3">
         <input
           type="text"
           placeholder="Bookmark title"
-          className="border rounded-lg px-3 py-2 w-full sm:w-1/3 focus:outline-none focus:ring-2 focus:ring-brand"
+          className="border rounded-lg px-3 py-2 w-full sm:w-1/3"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           disabled={loading}
@@ -85,7 +76,7 @@ export default function BookmarkForm({ user, onRefresh }) {
         <input
           type="text"
           placeholder="https://example.com"
-          className="border rounded-lg px-3 py-2 w-full flex-1 focus:outline-none focus:ring-2 focus:ring-brand"
+          className="border rounded-lg px-3 py-2 w-full flex-1"
           value={url}
           onChange={(e) => setUrl(e.target.value)}
           disabled={loading}
@@ -94,15 +85,13 @@ export default function BookmarkForm({ user, onRefresh }) {
         <button
           type="submit"
           disabled={loading}
-          className="bg-brand text-white px-5 py-2 rounded-lg font-medium hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="bg-brand text-white px-5 py-2 rounded-lg disabled:opacity-50"
         >
           {loading ? "Adding..." : "Add"}
         </button>
       </form>
 
-      {error && (
-        <p className="text-sm text-red-500 mt-2">{error}</p>
-      )}
+      {error && <p className="text-sm text-red-500 mt-2">{error}</p>}
     </div>
   );
 }

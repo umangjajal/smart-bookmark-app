@@ -7,25 +7,20 @@ export default function BookmarkList({ user }) {
   const [bookmarks, setBookmarks] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Fetch bookmarks for current user
-  const fetchBookmarks = async () => {
-    const { data, error } = await supabase
-      .from("bookmarks")
-      .select("*")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false });
-
-    if (!error) {
-      setBookmarks(data || []);
-    }
-
-    setLoading(false);
-  };
-
   useEffect(() => {
+    const fetchBookmarks = async () => {
+      const { data } = await supabase
+        .from("bookmarks")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
+
+      setBookmarks(data || []);
+      setLoading(false);
+    };
+
     fetchBookmarks();
 
-    // Realtime subscription (only react to own changes)
     const channel = supabase
       .channel(`bookmarks-${user.id}`)
       .on(
@@ -36,28 +31,22 @@ export default function BookmarkList({ user }) {
           table: "bookmarks",
           filter: `user_id=eq.${user.id}`,
         },
-        () => {
-          fetchBookmarks(); // 🔥 auto refresh on add/delete
-        }
+        fetchBookmarks
       )
       .subscribe();
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return () => supabase.removeChannel(channel);
   }, [user.id]);
 
-  const removeBookmark = async (id) => {
+  const deleteBookmark = async (id) => {
     await supabase.from("bookmarks").delete().eq("id", id);
-    // No manual refresh needed — realtime handles it
+    // realtime updates UI
   };
 
-  // Loading state
   if (loading) {
     return <p className="text-center text-gray-500">Loading bookmarks...</p>;
   }
 
-  // Empty state
   if (bookmarks.length === 0) {
     return (
       <p className="text-center text-gray-500">
@@ -71,24 +60,22 @@ export default function BookmarkList({ user }) {
       {bookmarks.map((b) => (
         <li
           key={b.id}
-          className="bg-white p-4 rounded-xl shadow-sm flex justify-between items-center hover:shadow-md transition"
+          className="bg-white p-4 rounded-xl shadow flex justify-between items-center"
         >
-          <div className="flex flex-col">
+          <div>
             <a
               href={b.url}
               target="_blank"
               rel="noreferrer"
-              className="text-blue-600 font-medium hover:underline"
+              className="text-blue-600 font-medium"
             >
               {b.title}
             </a>
-            <span className="text-xs text-gray-400 break-all">
-              {b.url}
-            </span>
+            <p className="text-xs text-gray-400 break-all">{b.url}</p>
           </div>
 
           <button
-            onClick={() => removeBookmark(b.id)}
+            onClick={() => deleteBookmark(b.id)}
             className="text-sm text-red-500 hover:text-red-600"
           >
             Delete
