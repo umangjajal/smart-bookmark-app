@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { supabase } from "../lib/supabaseClient";
 
-export default function BookmarkForm({ user }) {
+export default function BookmarkForm({ user, onBookmarkAdded }) {
   const [title, setTitle] = useState("");
   const [url, setUrl] = useState("");
   const [loading, setLoading] = useState(false);
@@ -56,9 +56,14 @@ export default function BookmarkForm({ user }) {
       return;
     }
 
-    // Reset only — realtime updates list
+    // Reset form
     setTitle("");
     setUrl("");
+    
+    // Trigger auto-refresh
+    if (onBookmarkAdded) {
+      onBookmarkAdded();
+    }
   };
 
   return (

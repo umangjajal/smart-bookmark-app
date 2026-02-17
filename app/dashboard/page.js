@@ -10,7 +10,12 @@ import BookmarkList from "../../components/BookmarkList";
 export default function Dashboard() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [refreshKey, setRefreshKey] = useState(0);
   const router = useRouter();
+
+  const triggerRefresh = () => {
+    setRefreshKey((prev) => prev + 1);
+  };
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -33,6 +38,7 @@ export default function Dashboard() {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
+    router.replace("/login");
   };
 
   if (loading) {
@@ -46,8 +52,8 @@ export default function Dashboard() {
   return (
     <div className="max-w-2xl mx-auto p-6">
       <Navbar onLogout={handleLogout} />
-      <BookmarkForm user={user} />
-      <BookmarkList user={user} />
+      <BookmarkForm user={user} onBookmarkAdded={triggerRefresh} />
+      <BookmarkList user={user} refreshKey={refreshKey} onBookmarkDeleted={triggerRefresh} />
     </div>
   );
 }

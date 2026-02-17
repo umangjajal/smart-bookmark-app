@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
 
-export default function BookmarkList({ user }) {
+export default function BookmarkList({ user, refreshKey, onBookmarkDeleted }) {
   const [bookmarks, setBookmarks] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -36,11 +36,15 @@ export default function BookmarkList({ user }) {
       .subscribe();
 
     return () => supabase.removeChannel(channel);
-  }, [user.id]);
+  }, [user.id, refreshKey]);
 
   const deleteBookmark = async (id) => {
     await supabase.from("bookmarks").delete().eq("id", id);
-    // realtime updates UI
+    
+    // Trigger auto-refresh
+    if (onBookmarkDeleted) {
+      onBookmarkDeleted();
+    }
   };
 
   if (loading) {
